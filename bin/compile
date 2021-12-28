@@ -144,7 +144,7 @@ if [ $RUST_SKIP_BUILD -ne 1 ]; then
   cd "$BUILD_DIR/$BUILD_PATH"
   rm -rf target/
 
-  cd examples/website && perseus deploy --release
+  cd examples/website && perseus deploy
 
   echo "------> Perseus directory:"
   pwd
