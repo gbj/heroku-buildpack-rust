@@ -108,7 +108,8 @@ if [ -d "$CARGO_HOME" ]; then
     rustup update "$VERSION"
     rustup default "$VERSION"
 
-    # Install perseus-cli
+    # Install wasm-pack and perseus-cli
+    cargo install wasm-pack
     cargo install perseus-cli
 else
     echo "-----> Downloading rustup"
