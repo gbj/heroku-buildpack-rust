@@ -143,9 +143,11 @@ if [ $RUST_SKIP_BUILD -ne 1 ]; then
   echo "-----> Building application using Perseus"
   cd "$BUILD_DIR/$BUILD_PATH"
   rm -rf target/
-  rm -rf pkg/
 
-  cd examples/website && perseus deploy && cd ../..
+  cd examples/website && perseus deploy --release
+
+  echo "------> Perseus directory:"
+  pwd
 else
   echo "-----> Skipping Cargo build"
 fi
