@@ -7,13 +7,6 @@ CACHE_DIR=${2:-}
 ENV_DIR=${3:-}
 BP_DIR=$(cd $(dirname ${0:-}); cd ..; pwd)
 
-# Export DATABASE_URL at build time, mostly because Diesel is the best way to
-# do SQL in Rust right now, and Diesel will use it to generate code for the
-# database schema.
-if [ -e "$ENV_DIR/DATABASE_URL" ]; then
-  export DATABASE_URL="$(cat $ENV_DIR/DATABASE_URL)";
-fi
-
 # Set defaults for our configuration variables.  Stable Rust is sufficiently
 # stable at this point that I think we can just default it.
 VERSION=stable
@@ -25,13 +18,7 @@ RUST_SKIP_BUILD=0
 # If your Rust code is not at the root directory of the repository, specify a
 # `BUILD_PATH` to the correct directory in the `RustConfig`
 BUILD_PATH=""
-# Set this to "1" in `RustConfig` to install diesel at build time and copy it
-# into the target directory, next to your app binary. This makes it easy to
-# run migrations by adding a release step to your Procfile:
-# `release: ./target/release/diesel migration run`
-RUST_INSTALL_DIESEL=0
-# These flags are passed to `cargo install diesel`, e.g. '--no-default-features --features postgres'
-DIESEL_FLAGS=""
+
 # Default build flags to pass to `cargo build`.
 RUST_CARGO_BUILD_FLAGS="--release"
 
@@ -52,30 +39,6 @@ set -eu
 if [ -z ${VERSION+x} ]; then
   >&2 echo "failed: must set VERSION with rust-toolchain or RustConfig to indicate the Rust version."
   exit 1
-fi
-
-# Notify users running old, unstable versions of Rust about how to deploy
-# successfully.
-if [ $RUST_SKIP_BUILD -ne 1  ] && ( [ ! -z ${CARGO_URL+x} ] || [ ! -f "$BUILD_DIR/$BUILD_PATH/Cargo.toml" ] ); then
-    >&2 cat <<EOF
-To deploy a modern Rust app, make sure you have a Cargo.toml file, and that
-you do not define CARGO_URL or CARGO_VERSION in RustConfig.  If you're
-using an older version of Rust, and you need to re-deploy an existing
-application, try setting your buildpack to:
-
-  https://github.com/emk/heroku-buildpack-rust.git#old-rust
-EOF
-    exit 1
-fi
-
-# Handle people who still aren't using Rustup.
-if [ ! -z ${URL+x} ]; then
-    >&2 cat <<EOF
-heroku-pack-rust has switched to using rustup.  You no longer need a
-URL field in RustConfig. Instead, you should just specify a
-rustup-compatible version (such as `1.11`, `stable` or `nighty`) in VERSION.
-EOF
-    exit 1
 fi
 
 # Record our Rust build environment configuration in an export file, in
@@ -108,9 +71,8 @@ if [ -d "$CARGO_HOME" ]; then
     rustup update "$VERSION"
     rustup default "$VERSION"
 
-    # Install wasm-pack and perseus-cli
+    # Install wasm-pack
     cargo install wasm-pack
-    cargo install perseus-cli
     rustup target add wasm32-unknown-unknown
 else
     echo "-----> Downloading rustup"
@@ -144,21 +106,13 @@ if [ $RUST_SKIP_BUILD -ne 1 ]; then
   # To debug git issues:
   #export RUST_LOG="cargo::sources::git=debug"
   # To debug compiler and linking issues, add `--verbose`.
-  echo "-----> Building application using Perseus"
   cd "$BUILD_DIR/$BUILD_PATH"
   rm -rf target/
 
-  cd examples/website && perseus deploy
-
-  echo "------> Perseus directory:"
-  pwd
+  cd website/client
+  ./build.sh
+  cd ../server
+  cargo build --release
 else
   echo "-----> Skipping Cargo build"
-fi
-
-# Install diesel so we can use it for migrations
-if [ $RUST_INSTALL_DIESEL -eq 1 ]; then
-  echo "-----> Installing diesel"
-  cargo install diesel_cli $DIESEL_FLAGS || echo "already installed"
-  cp $(which diesel) target/release/
 fi
