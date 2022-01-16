@@ -82,8 +82,6 @@ else
     ./rustup.sh -y --default-toolchain "$VERSION"
     rm rustup.sh
 
-    # Install perseus-cli
-    cargo install perseus-cli
     cargo install wasm-pack
     rustup target add wasm32-unknown-unknown
 fi
