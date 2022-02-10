@@ -116,7 +116,7 @@ if [ $RUST_SKIP_BUILD -ne 1 ]; then
   cd "$BUILD_DIR/$BUILD_PATH"
   rm -rf target/
   cargo build -v #$RUST_CARGO_BUILD_FLAGS
-  mkdir -p target/release
+  mkdir -p target/debug
   find "$CARGO_TARGET_DIR/debug" -maxdepth 1 -type f -executable -exec cp -a -t target/debug {} \;
 else
   echo "-----> Skipping Cargo build"
